@@ -2,7 +2,7 @@ from typing import Callable
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from utils import GeoConformalResults
+from .utils import GeoConformalResults
 
 
 class GeoConformalSpatialRegression:
