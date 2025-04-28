@@ -1,3 +1,1 @@
 from .GeoConformalSpatialRegression import GeoConformalSpatialRegression
-from .GWQRBasedGeoCP import  GWQRBasedGeoConformalSpatialRegression
-from .LSCP import LSCP
