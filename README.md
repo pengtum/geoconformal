@@ -1,6 +1,6 @@
 # geoconformal
 
-Geographically Weighted Conformal Prediction Methods.
+Geospatial Conformal Prediction Methods.
 
 ## Installation
 
