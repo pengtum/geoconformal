@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='geoconformal',
-    version='0.1.0',
+    version='0.1.1',
     description='Geographically Weighted Conformal Prediction Methods',
     author='Peng Luo',
     author_email='pengluo@mit.edu',
