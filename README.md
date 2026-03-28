@@ -60,10 +60,16 @@ That's it. `results` contains everything you need.
 
 Traditional machine learning models give you a **single predicted value** (e.g., "the house price is $500K"). But how confident is that prediction? Conformal prediction answers this by providing a **prediction interval** (e.g., "the house price is between $450K and $550K, with 90% confidence").
 
+The figure below illustrates the workflow. **(a) Standard Conformal Prediction** treats all calibration residuals equally to compute a single global quantile. **(b) Weighted Conformal Prediction (GeoCP/GeoSIMCP)** assigns location-specific weights so each test point gets its own prediction interval.
+
+<p align="center">
+  <img src="figures/concept_of_geocp.png" width="90%" alt="Concept of Conformal Prediction and GeoCP"/>
+</p>
+
 The key idea:
 1. **Train** your model on training data
 2. **Calibrate**: compute residuals (prediction errors) on a held-out calibration set
-3. **Quantify**: use the distribution of residuals to build intervals for new test points
+3. **Quantify**: use the **weighted** distribution of residuals to build intervals for new test points
 
 ### What makes GeoCP special?
 
@@ -75,7 +81,13 @@ This means each test point gets its own **location-specific** prediction interva
 
 GeoCP only considers **geographic distance**. But sometimes nearby locations have very different characteristics. For example, two adjacent properties might be in different land-use zones (residential vs. commercial), leading to very different price distributions despite being close in space.
 
-GeoSIMCP addresses this by measuring similarity using **both geographic distance AND feature similarity**:
+The figure below shows the key difference. In the left panel (**GeoCP**), the hollow test point is weighted by geographic distance alone, so calibration samples from a different spatial process (pink region) receive high weights simply because they are nearby. In the right panel (**GeoSIMCP**), feature similarity is also considered, so calibration samples that are process-consistent (blue region) contribute more, even if they are farther away.
+
+<p align="center">
+  <img src="figures/geocp_vs_geosimcp.png" width="90%" alt="GeoCP vs GeoSIMCP: geographic weighting vs joint feature-geographic weighting"/>
+</p>
+
+GeoSIMCP measures similarity using **both geographic distance AND feature similarity**:
 
 ```
 d_joint = sqrt( lambda * d_geo^2 + (1 - lambda) * d_feat^2 )
@@ -84,6 +96,14 @@ d_joint = sqrt( lambda * d_geo^2 + (1 - lambda) * d_feat^2 )
 - When `lambda = 1.0`: only geographic distance matters (equivalent to GeoCP)
 - When `lambda = 0.0`: only feature similarity matters
 - When `0 < lambda < 1`: both contribute
+
+### Full Workflow of GeoSIMCP
+
+The figure below shows the complete GeoSIMCP pipeline. For GeoCP (left), only the bandwidth parameter `b` is optimized. For GeoSIMCP (right), both `b` and the trade-off parameter `lambda` are jointly optimized via grid search to minimize the interval score while maintaining valid coverage.
+
+<p align="center">
+  <img src="figures/workflow_geosimcp.png" width="90%" alt="Workflow of GeoSIMCP"/>
+</p>
 
 ---
 
