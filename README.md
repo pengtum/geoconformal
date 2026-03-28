@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/geoconformal.svg)](https://pypi.org/project/geoconformal/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/geoconformal.svg?label=PyPI%20downloads)](https://pypi.org/project/geoconformal/)
-[![GitHub](https://img.shields.io/github/stars/pengluo/geoconformal?style=social)](https://github.com/pengluo/geoconformal)
+[![GitHub](https://img.shields.io/github/stars/pengluo/geoconformal?style=social)](https://github.com/pengtum/geoconformal)
 
 **Model-agnostic uncertainty quantification for geospatial prediction.**
 
