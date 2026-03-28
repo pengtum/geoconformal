@@ -1,5 +1,11 @@
 # geoconformal
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI](https://img.shields.io/pypi/v/geoconformal.svg)](https://pypi.org/project/geoconformal/)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/geoconformal.svg?label=PyPI%20downloads)](https://pypi.org/project/geoconformal/)
+[![GitHub](https://img.shields.io/github/stars/pengluo/geoconformal?style=social)](https://github.com/pengluo/geoconformal)
+
 **Model-agnostic uncertainty quantification for geospatial prediction.**
 
 `geoconformal` provides prediction intervals for any spatial prediction model (XGBoost, Random Forest, Neural Networks, etc.) without modifying the model itself. It implements two methods:
