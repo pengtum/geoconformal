@@ -1,8 +1,8 @@
 Metadata-Version: 2.1
 Name: geoconformal
-Version: 0.2.0
+Version: 0.2.1
 Summary: Geographically Weighted Conformal Prediction Methods
-Home-page: https://github.com/pengluo/geoconformal
+Home-page: https://github.com/pengtum/geoconformal
 Author: Peng Luo
 Author-email: pengluo@mit.edu
 License: MIT

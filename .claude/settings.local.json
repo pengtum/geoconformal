@@ -15,7 +15,8 @@
       "Bash(PYTHONIOENCODING=utf-8 TWINE_USERNAME=__token__ TWINE_PASSWORD=\"pypi-AgEIcHlwaS5vcmcCJDVlZTQ3OTZlLTRkYWYtNDMxNi1hYjEwLWY0Mjg5NzFiYzJhOAACFFsxLFsiZ2VvY29uZm9ybWFsIl1dAAIsWzIsWyIwNDg0Zjk4ZS02MTA1LTRiOGYtYjNjZC1iYWNiM2RmOTQ1ZGQiXV0AAAYgbfBJTB75qZDUp91KOYgk8k9lfiJLilDZPu6jZYlSoZk\" python -m twine upload --verbose dist/*)",
       "Bash(python -c \"from geoconformal import GeoSIMConformalSpatialRegression; print\\(''geoconformal 0.2.0 - GeoSIMCP ready!''\\)\")",
       "Bash(python -c \"import json; nb = json.load\\(open\\(''example/geoconformal_tutorial.ipynb''\\)\\); print\\(f''Cells: {len\\(nb[\"\"cells\"\"]\\)}''\\); print\\(''Types:'', [c[''cell_type''] for c in nb[''cells'']]\\)\")",
-      "Bash(python -c \"import json; nb = json.load\\(open\\(''example/geoconformal_tutorial.ipynb'', encoding=''utf-8''\\)\\); print\\(f''Cells: {len\\(nb[\"\"cells\"\"]\\)}''\\); [print\\(f''  [{i}] {c[\"\"cell_type\"\"]:10s} {c[\"\"source\"\"][0][:60] if c[\"\"source\"\"] else \"\"\\(empty\\)\"\"}''\\) for i, c in enumerate\\(nb[''cells'']\\)]\")"
+      "Bash(python -c \"import json; nb = json.load\\(open\\(''example/geoconformal_tutorial.ipynb'', encoding=''utf-8''\\)\\); print\\(f''Cells: {len\\(nb[\"\"cells\"\"]\\)}''\\); [print\\(f''  [{i}] {c[\"\"cell_type\"\"]:10s} {c[\"\"source\"\"][0][:60] if c[\"\"source\"\"] else \"\"\\(empty\\)\"\"}''\\) for i, c in enumerate\\(nb[''cells'']\\)]\")",
+      "Bash(PYTHONIOENCODING=utf-8 TWINE_USERNAME=__token__ TWINE_PASSWORD=\"pypi-AgEIcHlwaS5vcmcCJDY4ODc0MGFmLTcxZGQtNDU2Ny05ODRjLThlZTU1M2YwYzYzNwACFFsxLFsiZ2VvY29uZm9ybWFsIl1dAAIsWzIsWyIwNDg0Zjk4ZS02MTA1LTRiOGYtYjNjZC1iYWNiM2RmOTQ1ZGQiXV0AAAYg8iCPVVjyeHVBlV9Pgvh2GuWwlxer72HaAaLN1z7z_LM\" python -m twine upload dist/*)"
     ]
   }
 }
