@@ -107,6 +107,15 @@ The figure below shows the complete GeoSIMCP pipeline. For GeoCP (left), only th
 
 ---
 
+## Example Notebook
+
+A complete step-by-step tutorial is available at **[`example/geoconformal_tutorial.ipynb`](example/geoconformal_tutorial.ipynb)**, covering:
+- GeoCP and GeoSIMCP usage with the Seattle housing dataset
+- Hyperparameter tuning (grid search with visualization)
+- Spatial mapping of predictions and uncertainty
+
+---
+
 ## Data Preparation
 
 The package expects your data to be split into three sets:
