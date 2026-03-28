@@ -12,7 +12,8 @@
       "Bash(python setup.py sdist bdist_wheel)",
       "Bash(TWINE_USERNAME=__token__ TWINE_PASSWORD=\"pypi-AgEIcHlwaS5vcmcCJDVlZTQ3OTZlLTRkYWYtNDMxNi1hYjEwLWY0Mjg5NzFiYzJhOAACFFsxLFsiZ2VvY29uZm9ybWFsIl1dAAIsWzIsWyIwNDg0Zjk4ZS02MTA1LTRiOGYtYjNjZC1iYWNiM2RmOTQ1ZGQiXV0AAAYgbfBJTB75qZDUp91KOYgk8k9lfiJLilDZPu6jZYlSoZk\" python -m twine upload dist/*)",
       "Bash(PYTHONIOENCODING=utf-8 TWINE_USERNAME=__token__ TWINE_PASSWORD=\"pypi-AgEIcHlwaS5vcmcCJDVlZTQ3OTZlLTRkYWYtNDMxNi1hYjEwLWY0Mjg5NzFiYzJhOAACFFsxLFsiZ2VvY29uZm9ybWFsIl1dAAIsWzIsWyIwNDg0Zjk4ZS02MTA1LTRiOGYtYjNjZC1iYWNiM2RmOTQ1ZGQiXV0AAAYgbfBJTB75qZDUp91KOYgk8k9lfiJLilDZPu6jZYlSoZk\" python -m twine upload dist/*)",
-      "Bash(PYTHONIOENCODING=utf-8 TWINE_USERNAME=__token__ TWINE_PASSWORD=\"pypi-AgEIcHlwaS5vcmcCJDVlZTQ3OTZlLTRkYWYtNDMxNi1hYjEwLWY0Mjg5NzFiYzJhOAACFFsxLFsiZ2VvY29uZm9ybWFsIl1dAAIsWzIsWyIwNDg0Zjk4ZS02MTA1LTRiOGYtYjNjZC1iYWNiM2RmOTQ1ZGQiXV0AAAYgbfBJTB75qZDUp91KOYgk8k9lfiJLilDZPu6jZYlSoZk\" python -m twine upload --verbose dist/*)"
+      "Bash(PYTHONIOENCODING=utf-8 TWINE_USERNAME=__token__ TWINE_PASSWORD=\"pypi-AgEIcHlwaS5vcmcCJDVlZTQ3OTZlLTRkYWYtNDMxNi1hYjEwLWY0Mjg5NzFiYzJhOAACFFsxLFsiZ2VvY29uZm9ybWFsIl1dAAIsWzIsWyIwNDg0Zjk4ZS02MTA1LTRiOGYtYjNjZC1iYWNiM2RmOTQ1ZGQiXV0AAAYgbfBJTB75qZDUp91KOYgk8k9lfiJLilDZPu6jZYlSoZk\" python -m twine upload --verbose dist/*)",
+      "Bash(python -c \"from geoconformal import GeoSIMConformalSpatialRegression; print\\(''geoconformal 0.2.0 - GeoSIMCP ready!''\\)\")"
     ]
   }
 }
