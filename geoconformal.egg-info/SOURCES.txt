@@ -1,0 +1,12 @@
+LICENSE
+README.md
+setup.py
+geoconformal/GeoConformalSpatialRegression.py
+geoconformal/GeoSIMConformalSpatialRegression.py
+geoconformal/__init__.py
+geoconformal/utils.py
+geoconformal.egg-info/PKG-INFO
+geoconformal.egg-info/SOURCES.txt
+geoconformal.egg-info/dependency_links.txt
+geoconformal.egg-info/requires.txt
+geoconformal.egg-info/top_level.txt
