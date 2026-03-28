@@ -1,1 +1,2 @@
 from .GeoConformalSpatialRegression import GeoConformalSpatialRegression
+from .GeoSIMConformalSpatialRegression import GeoSIMConformalSpatialRegression

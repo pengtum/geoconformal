@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='geoconformal',
-    version='0.1.5',
+    version='0.2.0',
     description='Geographically Weighted Conformal Prediction Methods',
     author='Peng Luo',
     author_email='pengluo@mit.edu',
@@ -12,7 +12,9 @@ setup(
     install_requires=[
         'numpy',
         'scikit-learn',
-        'scipy'
+        'scipy',
+        'geopandas',
+        'pandas',
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
