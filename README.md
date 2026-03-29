@@ -469,10 +469,15 @@ If you use this package in your research, please cite:
 
 **GeoCP:**
 ```bibtex
-@article{luo2025geoconformal,
-  title={Geospatial Conformal Prediction},
-  author={Luo, Peng},
-  year={2025}
+@article{lou2025geoconformal,
+  title={Geoconformal prediction: a model-agnostic framework for measuring the uncertainty of spatial prediction},
+  author={Lou, Xiayin and Luo, Peng and Meng, Liqiu},
+  journal={Annals of the American Association of Geographers},
+  volume={115},
+  number={8},
+  pages={1971--1998},
+  year={2025},
+  publisher={Taylor \& Francis}
 }
 ```
 
@@ -482,7 +487,7 @@ If you use this package in your research, please cite:
   title={Quantifying uncertainty in spatial prediction for nonstationary spatial processes},
   author={Luo, Peng},
   journal={Annals of the American Association of Geographers},
-  year={2025}
+  year={2026}
 }
 ```
 
