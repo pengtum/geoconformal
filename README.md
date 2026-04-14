@@ -125,27 +125,33 @@ A complete step-by-step tutorial is available at **[`example/geoconformal_tutori
 
 ## Data Preparation
 
-The package expects your data to be split into three sets:
+The package expects your data to be split into four sets:
 
 ```
 Full Dataset
-  |-- Training set (e.g., 80%)    --> used to train your prediction model
-  |-- Calibration set (e.g., 10%) --> used by geoconformal to compute residuals
-  |-- Test set (e.g., 10%)        --> where you want uncertainty estimates
+  |-- Training set (e.g., 70%)      --> used to train your prediction model
+  |-- Calibration set (e.g., 10%)   --> used by geoconformal to compute residuals
+  |-- Validation set (e.g., 10%)    --> used to tune hyperparameters (bandwidth, lambda)
+  |-- Test set (e.g., 10%)          --> final evaluation of uncertainty estimates
 ```
+
+**Important**: Hyperparameters (bandwidth, lambda) should be tuned on the **validation set**, not the test set. The test set should only be used for final evaluation to avoid data leakage.
 
 Example split:
 
 ```python
 from sklearn.model_selection import train_test_split
 
-# First split: 80% train, 20% remaining
+# First split: 70% train, 30% remaining
 X_train, X_remain, y_train, y_remain, coords_train, coords_remain = \
-    train_test_split(X, y, coords, test_size=0.2, random_state=42)
+    train_test_split(X, y, coords, test_size=0.3, random_state=42)
 
-# Second split: 50/50 of remaining = 10% calib, 10% test
-X_calib, X_test, y_calib, y_test, coords_calib, coords_test = \
-    train_test_split(X_remain, y_remain, coords_remain, test_size=0.5, random_state=42)
+# Second split: remaining into calib (1/3), val (1/3), test (1/3)
+X_calib, X_temp, y_calib, y_temp, coords_calib, coords_temp = \
+    train_test_split(X_remain, y_remain, coords_remain, test_size=2/3, random_state=42)
+
+X_val, X_test, y_val, y_test, coords_val, coords_test = \
+    train_test_split(X_temp, y_temp, coords_temp, test_size=0.5, random_state=42)
 ```
 
 ---
@@ -377,6 +383,8 @@ print(f"Intervals: [{geo_cp.lower_bound[0]:.2f}, {geo_cp.upper_bound[0]:.2f}]")
 
 ### For GeoCP: tune bandwidth
 
+Tune on the **validation set**, then evaluate on the **test set**.
+
 ```python
 best_score = float('inf')
 best_bw = None
@@ -384,8 +392,8 @@ best_bw = None
 for bw in [0.1, 0.5, 1.0, 2.0, 3.0, 5.0]:
     geo_cp = GeoConformalSpatialRegression(
         predict_f=model.predict, bandwidth=bw, miscoverage_level=0.1,
-        coord_calib=coords_calib, coord_test=coords_test,
-        X_calib=X_calib, y_calib=y_calib, X_test=X_test, y_test=y_test,
+        coord_calib=coords_calib, coord_test=coords_val,      # validate on val set
+        X_calib=X_calib, y_calib=y_calib, X_test=X_val, y_test=y_val,
     )
     results = geo_cp.analyze()
 
@@ -393,8 +401,8 @@ for bw in [0.1, 0.5, 1.0, 2.0, 3.0, 5.0]:
     width = results.upper_bound - results.lower_bound
     alpha = 0.1
     penalty = (2 / alpha) * (
-        np.maximum(results.lower_bound - y_test, 0) +
-        np.maximum(y_test - results.upper_bound, 0)
+        np.maximum(results.lower_bound - y_val, 0) +
+        np.maximum(y_val - results.upper_bound, 0)
     )
     score = np.mean(width + penalty)
 
@@ -418,16 +426,16 @@ for bw in np.linspace(0.1, 5.0, 20):
         geo_simcp = GeoSIMConformalSpatialRegression(
             predict_f=model.predict, bandwidth=bw, lambda_weight=lam,
             miscoverage_level=0.1, distance_metric='euclidean',
-            coord_calib=coords_calib, coord_test=coords_test,
-            X_calib=X_calib, y_calib=y_calib, X_test=X_test, y_test=y_test,
+            coord_calib=coords_calib, coord_test=coords_val,  # validate on val set
+            X_calib=X_calib, y_calib=y_calib, X_test=X_val, y_test=y_val,
         )
         results = geo_simcp.analyze()
 
         width = results.upper_bound - results.lower_bound
         alpha = 0.1
         penalty = (2 / alpha) * (
-            np.maximum(results.lower_bound - y_test, 0) +
-            np.maximum(y_test - results.upper_bound, 0)
+            np.maximum(results.lower_bound - y_val, 0) +
+            np.maximum(y_val - results.upper_bound, 0)
         )
         score = np.mean(width + penalty)
 
