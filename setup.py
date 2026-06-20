@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 
 setup(
     name='geoconformal',
-    version='0.2.1',
-    description='Geographically Weighted Conformal Prediction Methods',
+    version='0.3.0',
+    description='Geographically Weighted Conformal Prediction Methods (finite-sample-valid GeoCP & Bayesian GeoBCP)',
     author='Peng Luo',
     author_email='pengluo@mit.edu',
     url='https://github.com/pengtum/geoconformal',

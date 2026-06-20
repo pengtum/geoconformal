@@ -6,7 +6,28 @@ on:
       - main
 
 jobs:
+  # Run the test suite first; the publish job below only runs if this passes.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+      - name: Run tests
+        run: |
+          python tests/test_atom.py
+          python tests/test_variants.py
+          python tests/test_unified.py
+
   build-and-publish:
+    needs: test            # gate: do not publish unless tests pass
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -29,4 +50,6 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
+        # --skip-existing: a push to main that did not bump the version is a no-op
+        # at the upload step instead of a hard failure on "version already exists".
+        run: twine upload --skip-existing dist/*

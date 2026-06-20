@@ -1,27 +1,48 @@
 from typing import Callable
-import geopandas as gpd
 import numpy as np
-import pandas as pd
 from .utils import GeoConformalResults
+from .geocp.weights import spatial_kernel_weights
+from .geocp.utils import weighted_quantile
 
 
 class GeoConformalSpatialRegression:
+    """
+    Geographically weighted conformal prediction (GeoCP).
+
+    A thin, stateful wrapper over the unified ``geoconformal.geocp`` engine: it
+    weights calibration nonconformity scores by a spatial Gaussian kernel on the
+    coordinates and takes a per-test-point weighted quantile. The classic
+    ``.analyze()`` / ``GeoConformalResults.to_gpd()`` workflow is preserved.
+
+    Parameters
+    ----------
+    predict_f : Callable
+        Prediction function of the spatial model.
+    nonconformity_score_f : Callable, optional
+        Custom score(pred, gt) -> scores. Default: absolute residual |pred - gt|.
+    miscoverage_level : float
+        Miscoverage level alpha (0.1 -> 90% prediction intervals).
+    bandwidth : float
+        Gaussian kernel bandwidth.
+    coord_calib, coord_test : array (n, 2) / (m, 2)
+        Calibration / test coordinates.
+    X_calib, y_calib, X_test, y_test : arrays
+        Calibration / test features and targets.
+    include_test_atom : bool, default False
+        If True, add the unobserved test point's atom at +infinity with weight
+        w(x) (Tibshirani et al. 2019). This restores finite-sample coverage on
+        small / sparse calibration sets; where local support is insufficient the
+        interval becomes +infinity (an honest abstention rather than silent
+        under-coverage). The default ``False`` reproduces the original GeoCP
+        behaviour exactly.
+    """
+
     def __init__(self, predict_f: Callable, nonconformity_score_f: Callable = None,
                  miscoverage_level: float = 0.1, bandwidth: float = None,
                  coord_calib: np.ndarray = None, coord_test: np.ndarray = None,
                  X_calib: np.ndarray = None, y_calib: np.ndarray = None,
-                 X_test: np.ndarray = None, y_test: np.ndarray = None):
-        """
-        Initialize the GeoConformalSpatialPrediction
-
-        predict_f: the predict function of spatial prediction model
-        nonconformity_score_f: a measure of how well a new data point conforms to a model trained on a given dataset
-        miscoverage_level: the percentage of data points not in the confidence interval
-        bandwidth: the bandwidth of the Gaussian kernel
-        test_data: data points used for measuring uncertainty
-        coord_calib: coordinates of calibration data points
-        coord_test: coordinates of test data points
-        """
+                 X_test: np.ndarray = None, y_test: np.ndarray = None,
+                 include_test_atom: bool = False):
         self.predict_f = predict_f
         self.nonconformity_score_f = nonconformity_score_f
         self.miscoverage_level = miscoverage_level
@@ -32,6 +53,7 @@ class GeoConformalSpatialRegression:
         self.y_calib = y_calib
         self.X_test = X_test
         self.y_test = y_test
+        self.include_test_atom = include_test_atom
         self.uncertainty = None
         self.geo_uncertainty = None
         self.geo = None
@@ -41,94 +63,44 @@ class GeoConformalSpatialRegression:
         self.coverage_proba = None
 
     def predict_geoconformal_uncertainty(self):
-        """
-        Calculate the geographically weighted uncertainty for each sample
-        """
+        """Calculate the geographically weighted uncertainty for each sample."""
         if self.nonconformity_score_f is None:
             self.nonconformity_score_f = self._default_nonconformity_score
         y_calib_pred = self.predict_f(self.X_calib)
-        nonconformity_scores = np.array(self.nonconformity_score_f(y_calib_pred, self.y_calib))
-        uncertainty_list = []
-        for p in self.coord_test:
-            weights = self._kernel_smoothing(p, self.coord_calib, self.bandwidth)
-            quantile = self._weighted_quantile(nonconformity_scores, self.miscoverage_level, weights)
-            uncertainty_list.append(quantile)
-        uncertainty = np.quantile(nonconformity_scores, 1 - self.miscoverage_level)
-        self.geo_uncertainty = np.array(uncertainty_list)
-        self.uncertainty = uncertainty
+        nonconformity_scores = np.asarray(
+            self.nonconformity_score_f(y_calib_pred, self.y_calib), dtype=float)
+
+        q = 1 - self.miscoverage_level
+        coord_calib = np.asarray(self.coord_calib)
+        coord_test = np.asarray(self.coord_test)
+        weight_fn = spatial_kernel_weights(coord_calib, self.bandwidth)
+        weights = weight_fn(coord_test, coord_calib)
+        self_weights = weight_fn.self_weight(coord_test) if self.include_test_atom else None
+        self.geo_uncertainty = weighted_quantile(
+            nonconformity_scores, weights, q, self_weights=self_weights)
+        self.uncertainty = float(np.quantile(nonconformity_scores, q))
 
     def predict_confidence_interval(self):
-        """
-        Calculate the confidence interval based on uncertainty
-        :return:
-        """
+        """Calculate the confidence interval based on uncertainty."""
         predicted_value = self.predict_f(self.X_test)
-        upper_bound = predicted_value + self.geo_uncertainty
-        lower_bound = predicted_value - self.geo_uncertainty
         self.predicted_value = predicted_value
-        self.upper_bound = upper_bound
-        self.lower_bound = lower_bound
+        self.upper_bound = predicted_value + self.geo_uncertainty
+        self.lower_bound = predicted_value - self.geo_uncertainty
 
     def coverage_probability(self) -> float:
-        """
-        Calculate the coverage probability of confidence interval
-        """
-        self.coverage_proba = np.mean((self.y_test >= self.lower_bound) & (self.y_test <= self.upper_bound))
+        """Calculate the coverage probability of the confidence interval."""
+        self.coverage_proba = np.mean(
+            (self.y_test >= self.lower_bound) & (self.y_test <= self.upper_bound))
 
     def analyze(self):
         self.predict_geoconformal_uncertainty()
         self.predict_confidence_interval()
         self.coverage_probability()
-        return GeoConformalResults(self.geo_uncertainty, self.uncertainty, self.coord_test, self.predicted_value,
-                                   self.upper_bound, self.lower_bound, self.coverage_proba)
+        return GeoConformalResults(self.geo_uncertainty, self.uncertainty, self.coord_test,
+                                   self.predicted_value, self.upper_bound, self.lower_bound,
+                                   self.coverage_proba)
 
-    def _default_nonconformity_score(self, pred: np.ndarray, gt: np.ndarray) -> np.ndarray:
-        """
-        Default equation for computing nonconformity score
-        :param pred: predicted values
-        :param gt: ground truth values
-        :return: list of nonconformity scores
-        """
+    @staticmethod
+    def _default_nonconformity_score(pred: np.ndarray, gt: np.ndarray) -> np.ndarray:
+        """Default nonconformity score: |predicted - ground_truth|."""
         return np.abs(pred - gt)
-
-    def _gaussian_kernel(self, d: np.ndarray) -> np.ndarray:
-        """
-        Gaussian distance decay function
-        :param d: distances from test samples to calibration samples
-        :return: list of weights for calibration samples
-        """
-        return np.exp(-0.5 * d ** 2)
-
-    def _kernel_smoothing(self, z_test: np.ndarray, z_calib: np.ndarray, bandwidth: float) -> np.ndarray:
-        """
-        Kernel smoothing function
-        :param z_test: the coordinates of test samples
-        :param z_calib: the coordinates of calibration samples
-        :param bandwidth: distance decay parameter
-        :return: list of weights for calibration samples
-        """
-        distances = np.sqrt(np.sum(np.square(z_calib - z_test), axis=1))
-        # distances = np.abs(z_calib - z_test)
-        weights = self._gaussian_kernel(distances / bandwidth)
-        return weights
-
-    def _weighted_quantile(self, scores: np.ndarray, alpha: float = 0.1, weights: np.ndarray = None):
-        """
-        Calculate weighted quantile
-        :param scores: nonconformity scores
-        :param alpha: miscoverage level
-        :param weights: geographic weights
-        :return: weighted quantile at (1-alpha) miscoverage level
-        """
-        if weights is None:
-            weights = np.ones(len(scores))
-
-        sorted_indices = np.argsort(scores)
-        scores_sorted = scores[sorted_indices]
-        weights_sorted = weights[sorted_indices]
-
-        cumsum_weights = np.cumsum(weights_sorted)
-        normalized_cumsum_weights = cumsum_weights / cumsum_weights[-1]
-
-        idx = np.searchsorted(normalized_cumsum_weights, 1 - alpha)
-        return scores_sorted[idx]

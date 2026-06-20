@@ -9,12 +9,15 @@
 
 **Model-agnostic uncertainty quantification for geospatial prediction.**
 
-`geoconformal` provides prediction intervals for any spatial prediction model (XGBoost, Random Forest, Neural Networks, etc.) without modifying the model itself. It implements two methods:
+`geoconformal` provides prediction intervals for any spatial prediction model (XGBoost, Random Forest, Neural Networks, etc.) without modifying the model itself. It is built on a **single engine** (`GeoConformalPrediction`); every method below is that engine with a different choice of *weighting*, *point-estimate vs. Bayesian*, and *finite-sample correction*. Pick by what your data and decision look like — see **[Choosing a method](#choosing-a-method--applicability-guide)** below for detailed guidance.
 
-| Method | Class | When to use |
-|--------|-------|-------------|
-| **GeoCP** | `GeoConformalSpatialRegression` | Spatial interpolation, or when only coordinates are available |
-| **GeoSIMCP** | `GeoSIMConformalSpatialRegression` | Spatial regression with features, especially with nonstationary processes |
+| Method | How to call | Use when |
+|--------|-------------|----------|
+| **GeoCP** | `GeoConformalSpatialRegression` | spatial interpolation, or only coordinates are available |
+| **GeoSIMCP** | `GeoSIMConformalSpatialRegression` | features available *and* the spatial process is nonstationary |
+| **Finite-sample-valid GeoCP** | either class with `include_test_atom=True` | small / sparse calibration, or test points in poorly-sampled regions |
+| **GeoBCP (Bayesian)** | `GeoConformalRegressor(..., bayesian=True)` | you need per-location *reliability* of each interval |
+| **General weighted CP** | `GeoConformalPrediction` + a `geocp.weights` factory | non-spatial covariate shift, localized (k-NN), or a plain split-CP baseline |
 
 ## Installation
 
@@ -448,26 +451,122 @@ print(f"Best bandwidth: {best_params[0]:.2f}, lambda: {best_params[1]:.2f}")
 
 ---
 
-## Which Method Should I Use?
+## Choosing a method — applicability guide
+
+Every method here is the same engine with different choices along three independent axes: **(1) how calibration points are weighted**, **(2) point estimate vs. Bayesian posterior**, and **(3) whether the finite-sample `+∞` test atom is included**. They target *different guarantees*, so the question is which fits your problem — not which "wins".
+
+### Axis 1 — how should calibration points be weighted?
+
+- **Only coordinates, or pure spatial interpolation → GeoCP** (`GeoConformalSpatialRegression`). Assumes nearby locations have similar errors (Tobler's first law). The right default when you have no informative features or the error surface is spatially smooth. *Assumption:* local stationarity in space. *Cost:* over-weights nearby points even when they belong to a different process.
+
+- **Features available *and* the process is nonstationary → GeoSIMCP** (`GeoSIMConformalSpatialRegression`). When two nearby locations can belong to different regimes (e.g. residential vs. commercial parcels), geographic distance alone pulls in the wrong neighbors. GeoSIMCP blends geographic and feature distance via `lambda_weight` (`λ=1` → pure GeoCP, `λ=0` → pure feature similarity). Tune `λ`; if the optimum is `1.0`, the process is effectively stationary and GeoCP suffices. Use `distance_metric='mnd'` when a single dominant feature separates regimes (e.g. land-use class), `'euclidean'` when features matter roughly equally. *Cost:* an extra hyperparameter to tune.
+
+- **The mismatch is in feature space, not geography (covariate shift) → `covariate_shift_weights`.** When calibration and deployment differ in their *feature* distribution (you calibrated on one population, deploy on another), weight by the density ratio `p_test/p_calib`. *Requires:* an estimate of that ratio.
+
+- **You just want neighbourhood-local intervals → `knn_weights`** (localized CP, Guan 2023): each test point uses its `k` nearest calibration neighbours, no kernel bandwidth to set.
+
+- **Baseline / no localization → `uniform_weights`** = standard split conformal prediction. Use as a reference, or when nothing justifies localizing.
+
+### Axis 2 — do you need to know how *reliable* each interval is?
+
+- **One interval per location is enough → point estimate** (the classes above, or `.conformalize()`). A single threshold per point.
+
+- **You need per-location meta-uncertainty → GeoBCP** (`GeoConformalRegressor(..., bayesian=True)`). Returns a *posterior* over each location's threshold, so you can tell a wide-but-solid interval from a wide-but-unreliable one: posterior standard deviation, Kish effective sample size (how much local data supports the point), and the probability the interval is uninformative (`prob_infinite`). Use it for decision maps where interval *trustworthiness* matters. *Cost:* Monte-Carlo sampling — slower than the point estimate.
+
+### Axis 3 — is your calibration set small, or are some test points poorly sampled?
+
+- **Large, dense, well-covered → leave `include_test_atom=False`** (the default). Marginal coverage is already close to target and intervals stay finite. This also reproduces the behaviour published in the GeoCP / GeoSIMCP papers.
+
+- **Small `n`, or test points far from calibration data → `include_test_atom=True`.** Adds the unobserved test residual's `+∞` atom (Tibshirani et al. 2019), guaranteeing finite-sample coverage. Where the local data genuinely cannot certify the requested level, the interval becomes `+∞` — an explicit "not enough evidence here" instead of a falsely narrow interval. Use it when under-coverage is costly and honest abstention is acceptable; **avoid it (or widen the bandwidth)** if you must return a finite interval everywhere.
+
+### Quick decision flow
 
 ```
-Do you have explanatory features (X)?
-  |
-  |-- NO  --> Use GeoCP
-  |
-  |-- YES --> Is the spatial process likely nonstationary?
-                |
-                |-- Not sure --> Try GeoSIMCP with grid search over lambda.
-                |                If optimal lambda = 1.0, GeoCP suffices.
-                |
-                |-- YES --> Use GeoSIMCP
-                              |
-                              |-- One dominant differentiating feature?
-                              |     --> distance_metric='mnd'
-                              |
-                              |-- Features contribute relatively equally?
-                                    --> distance_metric='euclidean'
+Only coordinates? ───────────────────── yes → GeoCP
+   │ no (have features)
+   ▼
+Can nearby points differ by regime? ──── yes → GeoSIMCP  (tune lambda; 'mnd' if one feature dominates)
+   │ no                                    no → GeoCP
+   ▼
+Calibration small / sparse? ──────────── yes → add include_test_atom=True
+   ▼
+Need per-interval reliability? ───────── yes → GeoBCP (bayesian=True)
+   ▼
+Non-spatial shift / localized / baseline?
+        → covariate_shift_weights / knn_weights / uniform_weights
 ```
+
+These choices **compose**: e.g. GeoSIMCP + `include_test_atom=True`, or spatial weights + Bayesian (GeoBCP). GeoCP/GeoSIMCP give spatially-varying marginal coverage; the test atom adds finite-sample validity; GeoBCP adds per-location reliability.
+
+---
+
+## Finite-sample-valid & Bayesian GeoCP (`geoconformal.geocp`, new in 0.3.0)
+
+`geoconformal` is built on one engine, `GeoConformalPrediction`, which accepts any weight function and supports both a point-estimate threshold and a Bayesian posterior; the classic `GeoConformalSpatialRegression` / `GeoSIMConformalSpatialRegression` classes are convenience wrappers over it. Two capabilities of the engine are worth calling out:
+
+- **Finite-sample correction (the `+∞` test atom)** — following Tibshirani et al. (2019), the unobserved test point contributes its own atom at `+∞` with weight `w(x)`, which restores finite-sample coverage on small / sparse calibration sets; where local support is genuinely insufficient the interval becomes `+∞` (an honest abstention rather than silent under-coverage). It is **opt-in**: pass `include_test_atom=True` to the classic classes, or use the engine / `GeoConformalRegressor`. With `uniform_weights` the engine reduces **exactly** to standard split conformal prediction.
+- **GeoBCP (Bayesian)** — puts a *posterior* over each location's threshold via a weighted Dirichlet whose concentration is Kish's effective sample size, and reports an HPD interval at confidence `beta`, plus per-location diagnostics (effective sample size, posterior standard deviation, probability the interval is infinite).
+
+### Usage
+
+```python
+from geoconformal import GeoConformalRegressor
+from sklearn.ensemble import RandomForestRegressor
+
+model = RandomForestRegressor().fit(X_train, y_train)
+
+reg = GeoConformalRegressor(
+    predict_f=model.predict,
+    x_calib=X_calib, y_calib=y_calib, coord_calib=coords_calib,
+    bandwidth=0.15, miscoverage_level=0.1,          # 90% target coverage
+    # adaptive=True, k=20,                          # optional k-NN adaptive bandwidth
+)
+
+# Corrected GeoCP (point-estimate threshold, finite-sample valid)
+res = reg.geo_conformalize(X_test, y_test, coords_test)
+print(res.coverage, res.mean_width_finite, res.frac_infinite)
+
+# GeoBCP (Bayesian threshold posterior + HPD interval)
+bres = reg.geo_conformalize(X_test, y_test, coords_test, bayesian=True, beta=0.9, num_mc=1000)
+print(bres.coverage, bres.mean_n_eff, bres.summary())
+```
+
+### Diagnostics (`GeoCPResults`)
+
+| Field / property | Meaning |
+|---|---|
+| `coverage` | empirical coverage on the test set |
+| `lower_bound` / `upper_bound` / `uncertainty` | per-point interval and half-width |
+| `frac_infinite` | fraction of points that abstained (interval = `+∞`) |
+| `mean_width_finite` | mean interval width over finite (certifiable) points |
+| `n_eff` *(Bayesian)* | per-point Kish effective sample size — how much local data supports the threshold |
+| `posterior_std` *(Bayesian)* | per-point posterior SD of the threshold (meta-uncertainty) |
+| `prob_infinite` *(Bayesian)* | posterior probability the interval is infinite |
+
+### Advanced — arbitrary weight schemes
+
+`GeoConformalRegressor` is a thin spatial wrapper over `GeoConformalPrediction`, which accepts any weight function from `geoconformal.geocp.weights`:
+
+| factory | method |
+|---|---|
+| `spatial_kernel_weights` | GeoCP / GeoBCP (Gaussian kernel on coordinates) |
+| `adaptive_spatial_weights` | adaptive-bandwidth GeoCP |
+| `covariate_shift_weights` | weighted CP under covariate shift (Tibshirani 2019) |
+| `knn_weights` | localized CP (Guan 2023) |
+| `uniform_weights` | standard split CP |
+| `rbf_feature_weights` | RBF kernel in feature space |
+
+```python
+from geoconformal import GeoConformalPrediction
+from geoconformal.geocp.weights import spatial_kernel_weights
+
+weight_fn = spatial_kernel_weights(coords_calib, bandwidth=0.15)
+geo = GeoConformalPrediction(model.predict, X_calib, y_calib, weight_fn, miscoverage_level=0.1)
+res  = geo.conformalize(X_test, y_test, coord_test=coords_test)                 # point estimate
+bres = geo.bayesian_conformalize(X_test, y_test, coord_test=coords_test, beta=0.9)  # Bayesian
+```
+
+> **Note** — this framework is model-agnostic (NumPy in/out) and does **not** return a `GeoDataFrame`. Use it when you need finite-sample validity or threshold posteriors; use `GeoConformalSpatialRegression` / `GeoSIMConformalSpatialRegression` when you want the stateful `.analyze()` / `.to_gpd()` workflow. Self-contained finite-sample coverage checks live in [`experiments/`](experiments/).
 
 ---
 
@@ -495,6 +594,16 @@ If you use this package in your research, please cite:
   title={Quantifying uncertainty in spatial prediction for nonstationary spatial processes},
   author={Luo, Peng},
   journal={Annals of the American Association of Geographers},
+  year={2026}
+}
+```
+
+**GeoBCP / Weighted Bayesian Conformal Prediction** (the `geoconformal.geocp` framework):
+```bibtex
+@article{lou2026wbcp,
+  title={Weighted Bayesian Conformal Prediction},
+  author={Lou, Xiayin and Luo, Peng},
+  journal={arXiv preprint arXiv:2604.06464},
   year={2026}
 }
 ```
