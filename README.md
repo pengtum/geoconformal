@@ -6,10 +6,20 @@
 [![Downloads](https://static.pepy.tech/badge/geoconformal)](https://pepy.tech/project/geoconformal)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/geoconformal.svg?label=PyPI%20downloads)](https://pypi.org/project/geoconformal/)
 [![GitHub](https://img.shields.io/github/stars/pengluo/geoconformal?style=social)](https://github.com/pengtum/geoconformal)
+[![Live Demo](https://img.shields.io/badge/%F0%9F%8C%90%20Live%20Demo-Open%20app-2ea44f)](https://spatialuncertaintyviz-production.up.railway.app)
 
 **Model-agnostic uncertainty quantification for geospatial prediction.**
 
 `geoconformal` attaches a prediction interval to any spatial model (XGBoost, Random Forest, neural nets, …) **without retraining it** — and tells you **how much to trust each interval**.
+
+> **🌐 Try it live — [interactive demo](https://spatialuncertaintyviz-production.up.railway.app).** Pick a dataset, a base model, and a conformal-prediction method, then explore coverage, uncertainty, intervals, posterior and effective-sample-size views right in your browser — no install.
+
+<p align="center">
+  <a href="https://spatialuncertaintyviz-production.up.railway.app">
+    <img src="figures/spatial_uncertainty_viz.png" width="88%" alt="Spatial Uncertainty Visualizer — interactive demo (click to open)"/>
+  </a>
+</p>
+<p align="center"><em><a href="https://spatialuncertaintyviz-production.up.railway.app">▶ Open the live app</a> — “Revealing the Dark Side of GeoAI”</em></p>
 
 ### Why this matters
 
