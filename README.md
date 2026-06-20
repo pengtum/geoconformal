@@ -1,5 +1,12 @@
 # geoconformal
 
+<p align="center">
+  <b>Main contributors</b><br/>
+  <a href="https://vezarachan.github.io"><b>Xiayin Lou</b></a> · Technical University of Munich
+  &nbsp;·&nbsp;
+  <a href="https://peng-luo.com"><b>Peng Luo</b></a> · MIT Senseable City Lab
+</p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/pypi/v/geoconformal.svg)](https://pypi.org/project/geoconformal/)
