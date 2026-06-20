@@ -9,15 +9,37 @@
 
 **Model-agnostic uncertainty quantification for geospatial prediction.**
 
-`geoconformal` provides prediction intervals for any spatial prediction model (XGBoost, Random Forest, Neural Networks, etc.) without modifying the model itself. It is built on a **single engine** (`GeoConformalPrediction`); every method below is that engine with a different choice of *weighting*, *point-estimate vs. Bayesian*, and *finite-sample correction*. Pick by what your data and decision look like — see **[Choosing a method](#choosing-a-method--applicability-guide)** below for detailed guidance.
+`geoconformal` attaches a prediction interval to any spatial model (XGBoost, Random Forest, neural nets, …) **without retraining it** — and tells you **how much to trust each interval**.
 
-| Method | How to call | Use when |
-|--------|-------------|----------|
-| **GeoCP** | `GeoConformalSpatialRegression` | spatial interpolation, or only coordinates are available |
-| **GeoSIMCP** | `GeoSIMConformalSpatialRegression` | features available *and* the spatial process is nonstationary |
-| **Finite-sample-valid GeoCP** | either class with `include_test_atom=True` | small / sparse calibration, or test points in poorly-sampled regions |
-| **GeoBCP (Bayesian)** | `GeoConformalRegressor(..., bayesian=True)` | you need per-location *reliability* of each interval |
-| **General weighted CP** | `GeoConformalPrediction` + a `geocp.weights` factory | non-spatial covariate shift, localized (k-NN), or a plain split-CP baseline |
+### Why this matters
+
+A map of predictions is only actionable if it carries a reliable statement of uncertainty. For spatial data that uncertainty has **two levels**, and most tools address only the first:
+
+1. **How uncertain is the prediction at each location?** Model error is *spatially non-stationary* — one global ± error bar overstates confidence in hard regions and wastes it in easy ones. **GeoCP / GeoSIMCP** give a *location-specific* interval by weighting calibration errors toward each test point.
+2. **How much can you trust that interval itself?** Each local interval is estimated from whatever calibration data happens to lie nearby — in data-sparse areas it rests on a handful of points, yet on a map it looks just as authoritative as one backed by hundreds. **GeoBCP** adds a *posterior over the interval* — **uncertainty about the uncertainty** — so "wide because genuinely uncertain" is distinguishable from "wide/narrow but barely supported."
+
+Skipping level 2 is how a "90%" map quietly under-covers exactly where data is thin — and where decisions are riskiest.
+
+### Two dimensions
+
+The methods sit on **two independent axes** — choose one option on each:
+
+**Dimension 1 — how the uncertainty is *localized* (the weighting).** GeoCP and GeoSIMCP are parallel choices:
+- **GeoCP** — geographic distance only (Tobler: nearby ≈ similar).
+- **GeoSIMCP** — geographic distance **+ feature similarity**, for nonstationary processes where neighbours can belong to different regimes.
+
+**Dimension 2 — how confident you are *in that uncertainty*.**
+- **Point estimate** — one interval per location.
+- **GeoBCP (Bayesian)** — a *posterior* over each location's interval: its width **plus** a reliability readout (posterior spread, local effective sample size, probability the interval is uninformative). This is the *uncertainty on the uncertainty*.
+
+|  | **Point estimate** → the interval | **GeoBCP** (Bayesian) → interval **+ its reliability** |
+|---|---|---|
+| **GeoCP** — geographic | `GeoConformalSpatialRegression` | `GeoConformalRegressor(..., bayesian=True)` |
+| **GeoSIMCP** — geo + feature | `GeoSIMConformalSpatialRegression` | engine: `GeoConformalPrediction` + `joint_geo_feature_weights` |
+
+> A third, optional axis is **finite-sample validity**: pass `include_test_atom=True` to guarantee coverage on small / sparse calibration sets — where local data genuinely cannot certify the level the interval becomes `+∞` (an honest abstention).
+
+New in 0.3.0. See **[Choosing a method](#choosing-a-method--applicability-guide)** for detailed guidance, and the **[GeoBCP tutorial](example/geobcp_tutorial.ipynb)** for a walkthrough of the second dimension.
 
 ## Installation
 

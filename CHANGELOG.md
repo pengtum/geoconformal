@@ -30,6 +30,9 @@ GeoCP framework by Xiayin Lou and Peng Luo.
   tests before uploading to PyPI.
 - Self-contained finite-sample coverage checks under `experiments/` on the Seattle
   sample (`seattle_smalln.py`, `seattle_hist.py`).
+- `example/geobcp_tutorial.ipynb` — a GeoBCP walkthrough (uncertainty-about-the-
+  uncertainty), plus a motivation- and applicability-focused README organised
+  around two dimensions (weighting: GeoCP / GeoSIMCP; estimate: point / GeoBCP).
 
 ### Changed (unified architecture)
 - `GeoConformalSpatialRegression` (GeoCP) and `GeoSIMConformalSpatialRegression`
